@@ -139,4 +139,52 @@ def handle_use_item(player, item_name_with_target, current_room_data):
     puzzles.try_use_item_puzzle(player, item_to_use, target_name, current_room_data)
     # The puzzles module will handle success/failure messages and state changes
     # Add more general item use logic if not puzzle-related (adds ~15-20 lines)
+def game_loop():
+    """Main game loop."""
+    ui.display_welcome()
+    player = Player(start_room_id='hall') # Starting room ID
 
+    # Load all game data
+    world.load_world_data() # Member 2
+    items.load_item_data()   # Member 3
+    puzzles.load_puzzle_data() # Member 4
+    # (UI text is mostly loaded by Member 5's module itself or on demand)
+
+    while True:
+        current_room_data = world.get_room(player.current_room_id)
+        if not current_room_data:
+            ui.display_text("Error: You are in an unknown void. Quitting.")
+            break
+        
+        # Display room description first time or if "look" is typed
+        # For now, let's display it every time a room is entered by movement.
+        # A more sophisticated approach would track if the room is "new" to the player.
+        if not hasattr(player, 'last_room_id') or player.last_room_id != player.current_room_id:
+            ui.display_room_description(current_room_data, player)
+            player.last_room_id = player.current_room_id
+
+
+        command_str = ui.get_player_input("> ")
+        if not command_str: # Handle empty input after prompt
+            continue
+
+        result = parse_command(command_str, player, current_room_data)
+
+        if result == "quit":
+            ui.display_text("Thanks for playing!")
+            break
+        
+        # Check for game win/lose conditions
+        if puzzles.check_win_condition(player):
+            ui.display_win_message() # Define in UI
+            break
+        if puzzles.check_lose_condition(player): # Define in Puzzles
+            ui.display_lose_message() # Define in UI
+            break
+        
+        # Add more complex game state updates after each command (adds ~10-20 lines)
+
+if __name__ == "__main__":
+    # This check ensures the game_loop runs only when game_engine.py is executed directly.
+    # It's good practice for making modules reusable.
+    game_loop()
