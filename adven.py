@@ -311,3 +311,108 @@ if _name_ == '_main_':
     if kitchen:
         print(f"\nMoving to {kitchen.name}")
         print(kitchen.get_dynamic_description(None))
+# items.py
+# Member 3: Items & Inventory System
+
+class Item:
+    def __init__(self, id, name, description, takeable=True, use_effect=None, use_message=None, properties=None):
+        self.id = id
+        self.name = name
+        self.description = description # Detailed description when examined
+        self.takeable = takeable # Can the player pick this up?
+        self.use_effect = use_effect # A function or identifier for its effect when used
+        self.use_message = use_message # Message displayed when used (if no complex effect)
+        self.properties = properties if properties else {} # e.g., {"edible": True, "unlocks": "library_door_puzzle"}
+        # Add more item attributes: weight, value, charges, etc. (adds ~5-10 lines)
+
+    def on_use(self, player, target_obj_name=None, current_room=None):
+        """
+        Called when an item is used.
+        This might interact with the puzzle system or change player/world state.
+        """
+        if self.use_message:
+            # ui.display_text(self.use_message) # Would need ui module import
+            print(self.use_message) # For standalone testing
+
+        if self.use_effect:
+            # The actual effect logic might be better handled in the puzzles.py
+            # or game_engine.py to keep item definitions clean.
+            # For now, just indicate it has an effect.
+            # This function could return a status or data for the engine.
+            print(f"The {self.name} has a special effect: {self.use_effect}")
+            return {"effect_handled": True, "details": self.use_effect}
+        return {"effect_handled": False}
+    
+    # Add more item methods: combine_with, inspect_details (adds ~5-10 lines)
+
+# Global dictionary to store all item definitions, keyed by item_id
+ALL_ITEMS = {}
+
+def load_item_data():
+    """
+    Populates the ALL_ITEMS with Item objects.
+    This is where all game items are defined.
+    Expected to be a significant data definition area. (adds ~50-80 lines for many items)
+    """
+    global ALL_ITEMS
+    ALL_ITEMS = {
+        'key_rusty': Item(
+            id='key_rusty',
+            name="rusty key",
+            description="A small, very rusty key. It looks like it might fit an old lock.",
+            properties={"unlocks_puzzle": "library_door_puzzle"} # Custom property
+        ),
+        'note_crumpled': Item(
+            id='note_crumpled',
+            name="crumpled note",
+            description="'The treasure is hidden where the sun doesn't shine indoors,' it reads.",
+            use_message="You read the note again. It's cryptic."
+        ),
+        'apple_red': Item(
+            id='apple_red',
+            name="red apple",
+            description="A shiny red apple. Looks delicious.",
+            takeable=True,
+            use_message="You eat the apple. It's crisp and refreshing!",
+            properties={"edible": True}
+            # use_effect could potentially restore health if player has health attribute
+        ),
+        'book_ancient': Item(
+            id='book_ancient',
+            name="ancient book",
+            description="A heavy tome bound in cracked leather. The title is unreadable.",
+            takeable=True,
+            use_message="You try to read the book, but the language is unknown to you."
+            # Could trigger a puzzle or reveal info if player has 'translation_skill' flag
+        ),
+        'scroll_sealed': Item(
+            id='scroll_sealed',
+            name="sealed scroll",
+            description="A parchment scroll, tightly rolled and sealed with wax.",
+            takeable=True,
+            # use_effect could be 'unseal_scroll_puzzle'
+        ),
+        # Add many more items...
+    }
+
+def get_item_by_id(item_id):
+    """Returns the Item object for a given item_id."""
+    return ALL_ITEMS.get(item_id)
+
+# Add functions for managing player inventory (these might be better in Player class in game_engine.py,
+# but item-specific checks could reside here)
+# e.g., check_if_item_is_usable(item_id), get_item_property(item_id, prop_name) (adds ~10-15 lines)
+
+if __name__ == '__main__':
+    # Example of how to test this module independently
+    load_item_data()
+    
+    key = get_item_by_id('key_rusty')
+    if key:
+        print(f"Item: {key.name}, Desc: {key.description}, Takeable: {key.takeable}")
+        key.on_use(None) # Pass dummy player
+
+    apple = get_item_by_id('apple_red')
+    if apple:
+        print(f"Item: {apple.name}, Desc: {apple.description}, Takeable: {apple.takeable}")
+        apple.on_use(None)
