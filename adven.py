@@ -53,7 +53,7 @@ class Player:
             elif target.lower() == "around" or target.lower() == current_room_data.name.lower():
                 ui.display_room_description(current_room_data, player)
             else:
-                 ui.display_text(f"You don't see '{target}' here.")
+                ui.display_text(f"You don't see '{target}' here.")
         else:
             # Generic "look around"
             ui.display_room_description(current_room_data, player)
@@ -75,3 +75,68 @@ class Player:
         ui.display_text("I don't understand that command.")
     # Add more command handling: 'use item on target', 'open door', 'talk to character' etc.
     return None # Continue game
+def handle_movement(player, direction, current_room_data):
+    """Handles player movement."""
+    if direction in current_room_data.exits:
+        next_room_id = current_room_data.exits[direction]
+        # Check for locked doors/puzzle conditions before moving
+        if puzzles.can_player_enter(player, current_room_data.id, next_room_id):
+            player.current_room_id = next_room_id
+            ui.display_text(f"You go {direction}.")
+            # Potentially trigger room entry events here
+        else:
+            ui.display_text(puzzles.get_block_message(player, current_room_data.id, next_room_id) or "Something blocks your way.")
+    else:
+        ui.display_text("You can't go that way.")
+    # Add more logic for locked exits, conditional movement (adds ~10-15 lines)
+
+def handle_take_item(player, item_name, current_room_data):
+    """Handles taking an item from the room."""
+    if not item_name:
+        ui.display_text("Take what?")
+        return
+    item_to_take = current_room_data.get_item_by_name(item_name)
+    if item_to_take and item_to_take.takeable:
+        player.add_item(item_to_take)
+        current_room_data.remove_item(item_to_take)
+    elif item_to_take and not item_to_take.takeable:
+        ui.display_text(f"You can't take the {item_name}.")
+    else:
+        ui.display_text(f"You don't see '{item_name}' here.")
+    # Add logic for item weight, inventory limits etc. (adds ~5-10 lines)
+
+def handle_drop_item(player, item_name, current_room_data):
+    """Handles dropping an item into the room."""
+    if not item_name:
+        ui.display_text("Drop what?")
+        return
+    item_to_drop = next((item for item in player.inventory if item.name.lower() == item_name.lower()), None)
+    if item_to_drop:
+        player.remove_item(item_to_drop)
+        current_room_data.add_item(item_to_drop) # Add to room's item list
+        ui.display_text(f"You dropped {item_to_drop.name}.")
+    else:
+        ui.display_text(f"You don't have '{item_name}' in your inventory.")
+    # Add more logic here (adds ~5 lines)
+
+def handle_use_item(player, item_name_with_target, current_room_data):
+    """Handles using an item, possibly on something."""
+    if not item_name_with_target:
+        ui.display_text("Use what? And on what (optional)?")
+        return
+
+    parts = item_name_with_target.split(" on ", 1)
+    item_name = parts[0]
+    target_name = parts[1] if len(parts) > 1 else None
+
+    item_to_use = next((item for item in player.inventory if item.name.lower() == item_name.lower()), None)
+
+    if not item_to_use:
+        ui.display_text(f"You don't have a {item_name}.")
+        return
+
+    # This is where interaction with puzzles module is crucial
+    puzzles.try_use_item_puzzle(player, item_to_use, target_name, current_room_data)
+    # The puzzles module will handle success/failure messages and state changes
+    # Add more general item use logic if not puzzle-related (adds ~15-20 lines)
+
