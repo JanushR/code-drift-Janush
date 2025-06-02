@@ -20,6 +20,7 @@ class Player:
         self.inventory.append(item_object)
         ui.display_text(f"You picked up {item_object.name}.")
 
+i
     def remove_item(self, item_object):
         if item_object in self.inventory:
             self.inventory.remove(item_object)
@@ -188,3 +189,125 @@ if __name__ == "__main__":
     # This check ensures the game_loop runs only when game_engine.py is executed directly.
     # It's good practice for making modules reusable.
     game_loop()
+    def _init_(self, id, name, description, exits=None, item_ids=None, puzzle_triggers=None, features=None):
+        self.id = id
+        self.name = name
+        self.description_default = description # Base description
+        self.exits = exits if exits else {} # e.g., {"north": "kitchen", "south": "garden"}
+        self.item_ids_in_room = item_ids if item_ids else [] # List of item IDs
+        self.items_in_room = [] # Will hold actual Item objects
+        self.puzzle_triggers = puzzle_triggers if puzzle_triggers else {} # e.g., {"examine_statue": "statue_puzzle_id"}
+        self.features = features if features else {} # e.g., {"statue": "A stone statue stands here."}
+        # Add more room attributes: light level, special properties, visited flag etc. (adds ~5-10 lines)
+
+    def get_dynamic_description(self, player):
+        """Generates description based on room state, player actions, puzzles solved."""
+        desc = self.description_default
+        # Add logic for changing description based on game flags or solved puzzles (adds ~10-15 lines)
+        # e.g., if player.game_flags.get("unlocked_secret_passage_in_hall"):
+        #    desc += "\nA newly revealed passage gapes in the west wall."
+
+        # List visible items
+        if self.items_in_room:
+            desc += "\nYou see here: " + ", ".join([item.name for item in self.items_in_room]) + "."
+
+        # List features
+        if self.features:
+            desc += "\nNotable features: " + ", ".join(self.features.keys()) + "."
+        return desc
+
+    def add_item(self, item_obj):
+        self.items_in_room.append(item_obj)
+
+    def remove_item(self, item_obj):
+        if item_obj in self.items_in_room:
+            self.items_in_room.remove(item_obj)
+
+    def get_item_by_name(self, item_name):
+        for item_obj in self.items_in_room:
+            if item_obj.name.lower() == item_name.lower():
+                return item_obj
+        return None
+
+    # Add more room methods: on_enter, on_exit, check_feature (adds ~10-15 lines)
+
+
+# Global dictionary to store all room objects, keyed by room_id
+GAME_MAP = {}
+
+def load_world_data():
+    """
+    Populates the GAME_MAP with Room objects.
+    This is where the actual game world is defined.
+    Expected to be one of the largest data definition areas. (adds ~50-80 lines for a decent map)
+    """
+    global GAME_MAP
+    GAME_MAP = {
+        'hall': Room(
+            id='hall',
+            name="Grand Hall",
+            description="You are in a dusty Grand Hall. Cobwebs hang from the ceiling.",
+            exits={"north": "kitchen", "east": "library_door"},
+            item_ids=['key_rusty', 'note_crumpled'], # Item IDs to be resolved
+            features={"chandelier": "A large, tarnished chandelier hangs precariously."}
+        ),
+        'kitchen': Room(
+            id='kitchen',
+            name="Messy Kitchen",
+            description="The kitchen is a mess. Pots and pans are strewn everywhere.",
+            exits={"south": "hall"},
+            item_ids=['apple_red'],
+            puzzle_triggers={"open_cupboard": "cupboard_puzzle"}
+        ),
+        'library_door': Room(
+            id='library_door',
+            name="Library Entrance",
+            description="A large oak door blocks the way to the east. It seems locked.",
+            exits={"west": "hall"}, # East exit to 'library' would be conditional (puzzle)
+            # This room might have a puzzle associated with opening the door to 'library'
+        ),
+        'library': Room(
+            id='library',
+            name="Dusty Library",
+            description="Rows of ancient books line the walls. A faint scent of old paper fills the air.",
+            exits={"west": "library_door"}, # Assuming door opens back this way
+            item_ids=['book_ancient', 'scroll_sealed']
+        ),
+        # Add many more rooms, connections, and details...
+    }
+
+    # After defining rooms with item_ids, resolve them to actual item objects
+    # This requires the item_manager (Member 3's module) to be loaded or accessible
+    for room_id, room_obj in GAME_MAP.items():
+        for item_id in room_obj.item_ids_in_room:
+            item_obj_actual = item_manager.get_item_by_id(item_id)
+            if item_obj_actual:
+                room_obj.items_in_room.append(item_obj_actual)
+            else:
+                print(f"Warning: Item ID '{item_id}' in room '{room_id}' not found in item definitions.")
+
+    # You would also link puzzles to rooms/features here if not done directly in Room constructor
+    # puzzles.link_puzzles_to_world(GAME_MAP) # A function in puzzles.py
+
+def get_room(room_id):
+    """Returns the Room object for a given room_id."""
+    return GAME_MAP.get(room_id)
+
+# Add functions for map display (text-based), checking connections, etc. (adds ~10-20 lines)
+
+if _name_ == '_main_':
+    # Example of how to test this module independently
+    load_world_data()
+    item_manager.load_item_data() # Need items for rooms to populate correctly for testing
+
+    hall = get_room('hall')
+    if hall:
+        print(f"Welcome to the {hall.name}")
+        print(hall.get_dynamic_description(None)) # Pass a dummy player or None for basic test
+        print("Exits:", hall.exits)
+        print("Items initially in hall:", [item.name for item in hall.items_in_room])
+
+    kitchen = get_room('kitchen')
+    if kitchen:
+        print(f"\nMoving to {kitchen.name}")
+        print(kitchen.get_dynamic_description(None))
