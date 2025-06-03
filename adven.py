@@ -416,3 +416,136 @@ if __name__ == '__main__':
     if apple:
         print(f"Item: {apple.name}, Desc: {apple.description}, Takeable: {apple.takeable}")
         apple.on_use(None)
+        # ui.py
+# Member 5: Story, Dialogue & User Interface
+
+import textwrap # For formatting long lines of text
+
+# Store major text blocks here. Smaller ones might be in their respective objects (Item, Room).
+WELCOME_MESSAGE = """
+Welcome, brave adventurer, to the Mysteries of Eldoria!
+Darkness has fallen upon the land, and only you can uncover the secrets hidden within.
+Type 'help' for a list of commands. Good luck!
+"""
+
+HELP_TEXT = """
+Available commands:
+  go [direction]     - Move north, south, east, west, up, down.
+  look / look around - Examine your current surroundings.
+  look at [object/feature] - Examine something specific.
+  take [item]        - Pick up an item from the room.
+  drop [item]        - Drop an item from your inventory.
+  inventory / i      - Check your inventory.
+  use [item]         - Use an item from your inventory.
+  use [item] on [target] - Use an item on something specific.
+  talk to [character]- Interact with characters.
+  help               - Show this help message.
+  quit               - Exit the game.
+
+More commands might be discovered as you explore...
+(This help text can be expanded - adds ~10 lines)
+"""
+
+WIN_MESSAGE = "Congratulations! You have unraveled the Mysteries of Eldoria and saved the land!"
+LOSE_MESSAGE = "Alas, your adventure ends here. The darkness prevails..."
+# Add more specific messages for different endings, events etc. (adds ~20-30 lines)
+
+def display_text(message, width=80):
+    """Prints text to the console, wrapped to a certain width."""
+    print("\n".join(textwrap.wrap(message, width=width)))
+    print() # Add a little space after messages
+
+def get_player_input(prompt="> "):
+    """Gets input from the player."""
+    return input(prompt).strip()
+
+def display_welcome():
+    display_text(WELCOME_MESSAGE)
+
+def display_help():
+    display_text(HELP_TEXT)
+
+def display_win_message():
+    display_text(WIN_MESSAGE)
+
+def display_lose_message():
+    display_text(LOSE_MESSAGE)
+
+def display_room_description(room_obj, player_obj):
+    """
+    Displays the full description of the current room.
+    This function might get more complex if descriptions change dynamically.
+    """
+    display_text(f"--- {room_obj.name} ---")
+    display_text(room_obj.get_dynamic_description(player_obj)) # Uses Room's method
+
+    # Display exits clearly
+    if room_obj.exits:
+        exit_list = ", ".join([f"{direction} to {name}" for direction, name in room_obj.exits.items()])
+        display_text(f"Exits: {exit_list}.")
+    else:
+        display_text("There are no obvious exits.")
+    # Add more UI elements: mini-map, status bars (graphical if using a library like Pygame/Curses)
+    # For text, this is fairly complete for room desc. (adds ~5-10 lines for more flair)
+
+def display_inventory(player_obj):
+    """Displays the player's inventory."""
+    if not player_obj.inventory:
+        display_text("Your inventory is empty.")
+        return
+
+    display_text("You are carrying:")
+    for item in player_obj.inventory:
+        # Assuming item objects have a 'name' attribute
+        display_text(f"- {item.name} ({item.description[:30]}...)") # Show short description
+    # Add options for examining items directly from inventory display (adds ~5-10 lines)
+
+# Add more UI functions:
+# - clear_screen() (platform dependent, or just print newlines)
+# - formatted_error_message(error_text)
+# - formatted_event_message(event_text)
+# - display_dialogue(character_name, dialogue_text, options)
+# (adds ~30-40 lines for these utility functions)
+
+if __name__ == '__main__':
+    # Example of how to test this module independently
+    display_welcome()
+    display_help()
+
+    class MockPlayer: # For testing inventory display
+        def __init__(self):
+            self.inventory = []
+    class MockItem:
+        def __init__(self, name, description):
+            self.name = name
+            self.description = description
+
+    player = MockPlayer()
+    player.inventory.append(MockItem("Shiny Gem", "A gem that glitters brightly."))
+    player.inventory.append(MockItem("Old Map", "A tattered map with strange symbols."))
+    display_inventory(player)
+
+    class MockRoom:
+        def __init__(self, name, description, exits, items, features):
+            self.name = name
+            self.description_default = description
+            self.exits = exits
+            self.items_in_room = items
+            self.features = features
+        def get_dynamic_description(self, player): # Simplified for test
+            desc = self.description_default
+            if self.items_in_room: desc += "\nItems: " + ", ".join([item.name for item in self.items_in_room])
+            if self.features: desc += "\nFeatures: " + ", ".join(self.features.keys())
+            return desc
+
+    test_room = MockRoom(
+        name="Test Chamber",
+        description="A plain room for testing UI.",
+        exits={"north": "The Void", "west": "Another Void"},
+        items=[MockItem("Test Item", "An item for testing.")],
+        features={"lever": "A rusty lever."}
+    )
+    display_room_description(test_room, player)
+
+    user_cmd = get_player_input("Test input: ")
+    display_text(f"You typed: {user_cmd}")
